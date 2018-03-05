@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class City : MonoBehaviour {
+public class City {
 
     public string cityName;
     public int population;
