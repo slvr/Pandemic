@@ -20,7 +20,9 @@ namespace Persistence {
 
     public class pe_ETM {
         public int currentPlayerTurn;
-        public int currentActionsPlayed;
+        public int currentActionsRemaining;
+        public bool setupPhase;
+        public bool waitingForPlayer;
         /* ... */
     }
 
