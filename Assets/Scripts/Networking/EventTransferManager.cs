@@ -76,7 +76,7 @@ public class EventTransferManager : Photon.MonoBehaviour {
             GetComponent<PhotonView>().RPC("GenerateBoardForClientFromSavedGame", PhotonTargets.All, new object[] { });
             GetComponent<PhotonView>().RPC("GenerateInfectionCardsForClientFromSavedGame", PhotonTargets.All, new object[] { });
             GetComponent<PhotonView>().RPC("GeneratePlayerCardsForClientFromSavedGame", PhotonTargets.All, new object[] { });
-            GetComponent<PhotonView>().RPC("GeneratePandemicManager", PhotonTargets.All, new object[] { });
+            GetComponent<PhotonView>().RPC("GenerateBoard", PhotonTargets.All, new object[] { });
         }
         else {
             GetComponent<PhotonView>().RPC("GenerateBoardForClient", PhotonTargets.All, new object[] { });
@@ -107,21 +107,21 @@ public class EventTransferManager : Photon.MonoBehaviour {
        // clientPlayerCards.loadCardState(/*  Load each player's cards  */);
     }
     [PunRPC]
-    IEnumerator GeneratePandemicManager(){
+    IEnumerator GenerateBoard(){
         yield return new WaitForSeconds(3f);
-        PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
+        Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
         Persistence.pe_ETM pe_etm = GameManager.instance.pe_eventTransferManager;
         GetComponent<PhotonView>().RPC("SetPlayerTurn", PhotonTargets.Others, new object[] { pe_etm.currentPlayerTurn });
         this.currentActionsRemaining = pe_etm.currentActionsRemaining;
         this.setupPhase = pe_etm.setupPhase;
         this.waitingForPlayer = pe_etm.waitingForPlayer;
-        clientPandemicManager.currentPlayerTurn = pe_etm.currentPlayerTurn;
-        clientPandemicManager.EnableSave();
+        clientBoard.currentPlayerTurn = pe_etm.currentPlayerTurn;
+        clientBoard.EnableSave();
     }
     [PunRPC]
     void SetPlayerTurn(int currentTurnPlayer) {
-        PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
-        clientPandemicManager.SetCurrentTurn(currentTurnPlayer);
+        Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+        clientBoard.SetCurrentTurn(currentTurnPlayer);
         EventTransferManager.instance.currentPlayerTurn = currentTurnPlayer;
     }
     [PunRPC]
@@ -174,7 +174,7 @@ public class EventTransferManager : Photon.MonoBehaviour {
     }
     [PunRPC]
     void EndTurn() {
-        PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
+        Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
         /*  draw infection cards, infect cities  */
     }
 
@@ -200,7 +200,7 @@ public class EventTransferManager : Photon.MonoBehaviour {
      * METHODS FOR GENERAL TURN ACTIONS
      * */
 
-    public IEnumerator onDrive(int senderPlayer, City dest) {
+    public IEnumerator onDrive(int senderPlayer, CityNode dest) {
         GetComponent<PhotonView>().RPC("MoveSelfPawn", PhotonTargets.All, new object[] { senderPlayer, dest });
         currentActionsRemaining -= 1;
         while (EventTransferManager.instance.waitingForPlayer) {
@@ -208,7 +208,7 @@ public class EventTransferManager : Photon.MonoBehaviour {
         }
     }
 
-    public IEnumerator onDirectFlight(int senderPlayer, City dest, CityCard cc) {
+    public IEnumerator onDirectFlight(int senderPlayer, CityNode dest, CityCard cc) {
         CityCard[] ccs = new CityCard[1];
         ccs[0] = cc;
         GetComponent<PhotonView>().RPC("discardFromPlayerHand", PhotonTargets.All, new object[] { senderPlayer, ccs });
@@ -219,7 +219,7 @@ public class EventTransferManager : Photon.MonoBehaviour {
         }
     }
 
-    public IEnumerator onCharterFlight(int senderPlayer, City dest, CityCard cc) {
+    public IEnumerator onCharterFlight(int senderPlayer, CityNode dest, CityCard cc) {
         CityCard[] ccs = new CityCard[1];
         ccs[0] = cc;
         GetComponent<PhotonView>().RPC("discardFromPlayerHand", PhotonTargets.All, new object[] { senderPlayer, ccs });
@@ -230,7 +230,7 @@ public class EventTransferManager : Photon.MonoBehaviour {
         }
     }
 
-    public IEnumerator onShuttleFlight(int senderPlayer, City dest) {
+    public IEnumerator onShuttleFlight(int senderPlayer, CityNode dest) {
         GetComponent<PhotonView>().RPC("MoveSelfPawn", PhotonTargets.All, new object[] { senderPlayer, dest });
         currentActionsRemaining -= 1;
         while (EventTransferManager.instance.waitingForPlayer){
@@ -238,18 +238,18 @@ public class EventTransferManager : Photon.MonoBehaviour {
         }
     }
     [PunRPC]
-    void MoveSelfPawn(int sender, City dest) {
-        PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
-        StartCoroutine(clientPandemicManager.movePawn(sender, dest));
+    void MoveSelfPawn(int sender, CityNode dest) {
+        Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+        StartCoroutine(clientBoard.movePawn(sender, dest));
     }
     [PunRPC]
     void discardFromPlayerHand(int sender, CityCard[] ccs) {
-        PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
-        StartCoroutine(clientPandemicManager.discardFromHand(sender, ccs));
+        Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+        StartCoroutine(clientBoard.discardFromHand(sender, ccs));
     }
 
     public IEnumerator onBuildResearchStation(int senderPlayer, CityCard cc) {
-        City c = cc.getCity();
+        CityNode c = cc.getCity();
         GetComponent<PhotonView>().RPC("discardFromPlayerHand", PhotonTargets.All, new object[] { senderPlayer, cc });
         GetComponent<PhotonView>().RPC("BuildResearchStation", PhotonTargets.All, new object[] { c });
         currentActionsRemaining -= 1;
@@ -259,29 +259,29 @@ public class EventTransferManager : Photon.MonoBehaviour {
         }
     }
     [PunRPC]
-    void BuildResearchStation(City c) {
-        PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
-        StartCoroutine(clientPandemicManager.buildResearchStation(c));
+    void BuildResearchStation(CityNode c) {
+        Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+        StartCoroutine(clientBoard.buildResearchStation(c));
     }
 
     public IEnumerator onTreatDisease(int senderPlayer, Colour c) {
-        City city = senderPlayer.getLocation();
+        CityNode city = senderPlayer.getLocation();
         GetComponent<PhotonView>().RPC("treatDisease", PhotonTargets.All, new object[] { city, c });
         currentActionsRemaining -= 1;
         switch ((Colour)c) {
-            case Colour.blue:
+            case Colour.BLUE:
                 blueRem += 1;
                 break;
-            case Colour.black:
+            case Colour.BLACK:
                 blackRem += 1;
                 break;
-            case Colour.purple:
+            case Colour.PURPLE:
                 purpleRem += 1;
                 break;
-            case Colour.red:
+            case Colour.RED:
                 redRem += 1;
                 break;
-            case Colour.yellow:
+            case Colour.YELLOW:
                 yellowRem += 1;
                 break;
         }
@@ -290,9 +290,9 @@ public class EventTransferManager : Photon.MonoBehaviour {
         }
     }
     [PunRPC]
-    void treatDisease(City city, Colour c) {
-        PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
-        StartCoroutine(clientPandemicManager.treatDisease(city, c));
+    void treatDisease(CityNode city, Colour c) {
+        Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+        StartCoroutine(clientBoard.treatDisease(city, c));
     }
 
     public void onGiveKnowledgeOffer(CityCard cc, int senderNumber, int receiverNumber) {
@@ -325,33 +325,33 @@ public class EventTransferManager : Photon.MonoBehaviour {
     void SignalGiveKnowledge(int senderNumber, int receiverNumber, CityCard cc) {
         Debug.Log("Receiving the notification: " + LevelManager.instance.players[receiverNumber].playerName);
         if (PhotonNetwork.player.ID - 1 == receiverNumber){
-            PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
-            clientPandemicManager.uiManager.giveKnowledgePlayerPanel.waiting.gameObject.SetActive(false);
-            clientPandemicManager.uiManager.giveKnowledgePlayerPanel.OpenRespond(clientPandemicManager.players[senderNumber], cc);
+            Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+            clientBoard.uiManager.giveKnowledgePlayerPanel.waiting.gameObject.SetActive(false);
+            clientBoard.uiManager.giveKnowledgePlayerPanel.OpenRespond(clientBoard.players[senderNumber], cc);
         }
     }
     [PunRPC]
     void GiveKnowledgePanelActivation(bool active) {
-        PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
-        GiveKnowledgePlayerPanel panel = clientPandemicManager.uiManager.giveKnowledgePlayerPanel;
+        Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+        GiveKnowledgePlayerPanel panel = clientBoard.uiManager.giveKnowledgePlayerPanel;
 
         panel.accept.onClick.RemoveAllListeners();
         panel.refuse.onClick.RemoveAllListeners();
 
-        clientPandemicManager.uiManager.giveKnowledgePlayerPanel.gameObject.SetActive(false);
+        clientBoard.uiManager.giveKnowledgePlayerPanel.gameObject.SetActive(false);
     }
     [PunRPC]
     void SignalGiveKnowledgeEnd(int to, bool result) {
         if (PhotonNetwork.player.ID - 1 == to){
             Debug.Log("Give knowledge: " + LevelManager.instance.players[to].playerName + " notified");
-            PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
-            clientPandemicManager.uiManager.giveKnowledgePlayerPanel.notification.gameObject.SetActive(true);
+            Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+            clientBoard.uiManager.giveKnowledgePlayerPanel.notification.gameObject.SetActive(true);
             if (result){
-                clientPandemicManager.uiManage.giveKnowledgePlayerPanel.notificationText.text = "Accepted";
+                clientBoard.uiManage.giveKnowledgePlayerPanel.notificationText.text = "Accepted";
                 currentActionsRemaining -= 1;
             }
             else{
-                clientPandemicManager.uiManage.giveKnowledgePlayerPanel.notificationText.text = "Rejected";
+                clientBoard.uiManage.giveKnowledgePlayerPanel.notificationText.text = "Rejected";
             }
         }
         GetComponent<PhotonView>().RPC("GiveKnowledgePanelActivation", PhotonTargets.All, new object[] { false });
@@ -387,33 +387,33 @@ public class EventTransferManager : Photon.MonoBehaviour {
     void SignalReceiveKnowledge(int senderNumber, int receiverNumber, CityCard cc){
         Debug.Log("Receiving the notification: " + LevelManager.instance.players[receiverNumber].playerName);
         if (PhotonNetwork.player.ID - 1 == receiverNumber) {
-            PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
-            clientPandemicManager.uiManager.receiveKnowledgePlayerPanel.waiting.gameObject.SetActive(false);
-            clientPandemicManager.uiManager.receiveKnowledgePlayerPanel.OpenRespond(clientPandemicManager.players[senderNumber], cc);
+            Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+            clientBoard.uiManager.receiveKnowledgePlayerPanel.waiting.gameObject.SetActive(false);
+            clientBoard.uiManager.receiveKnowledgePlayerPanel.OpenRespond(clientBoard.players[senderNumber], cc);
         }
     }
     [PunRPC]
     void ReceiveKnowledgePanelActivation(bool active) {
-        PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
-        ReceiveKnowledgePlayerPanel panel = clientPandemicManager.uiManager.receiveKnowledgePlayerPanel;
+        Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+        ReceiveKnowledgePlayerPanel panel = clientBoard.uiManager.receiveKnowledgePlayerPanel;
 
         panel.accept.onClick.RemoveAllListeners();
         panel.refuse.onClick.RemoveAllListeners();
 
-        clientPandemicManager.uiManager.receiveKnowledgePlayerPanel.gameObject.SetActive(false);
+        clientBoard.uiManager.receiveKnowledgePlayerPanel.gameObject.SetActive(false);
     }
     [PunRPC]
     void SignalReceiveKnowledgeEnd(int to, bool result) {
         if (PhotonNetwork.player.ID - 1 == to) {
             Debug.Log("Receive knowledge: " + LevelManager.instance.players[to].playerName + " notified");
-            PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
-            clientPandemicManager.uiManager.receiveKnowledgePlayerPanel.notification.gameObject.SetActive(true);
+            Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+            clientBoard.uiManager.receiveKnowledgePlayerPanel.notification.gameObject.SetActive(true);
             if (result){
-                clientPandemicManager.uiManage.receiveKnowledgePlayerPanel.notificationText.text = "Accepted";
+                clientBoard.uiManage.receiveKnowledgePlayerPanel.notificationText.text = "Accepted";
                 currentActionsRemaining -= 1;
             }
             else {
-                clientPandemicManager.uiManage.receiveKnowledgePlayerPanel.notificationText.text = "Rejected";
+                clientBoard.uiManage.receiveKnowledgePlayerPanel.notificationText.text = "Rejected";
             }
         }
         GetComponent<PhotonView>().RPC("ReceiveKnowledgePanelActivation", PhotonTargets.All, new object[] { false });
@@ -450,19 +450,19 @@ public class EventTransferManager : Photon.MonoBehaviour {
         GetComponent<PhotonView>().RPC("discoverCure", PhotonTargets.All, new object[] { senderPlayer, c });
         currentActionsRemaining -= 1;
         switch (c) {
-            case Colour.blue:
+            case Colour.BLUE:
                 blueCured = true;
                 break;
-            case Colour.black:
+            case Colour.BLACK:
                 blackCured = true;
                 break;
-            case Colour.purple:
+            case Colour.PURPLE:
                 purpleCured = true;
                 break;
-            case Colour.red:
+            case Colour.RED:
                 redCured = true;
                 break;
-            case Colour.yellow:
+            case Colour.YELLOW:
                 yellowCured = true;
                 break;
         }
@@ -472,8 +472,8 @@ public class EventTransferManager : Photon.MonoBehaviour {
     }
     [PunRPC]
     void discoverCure(int sender, Colour c) {
-        PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
-        StartCoroutine(clientPandemicManager.discoverCure(sender, c));
+        Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+        StartCoroutine(clientBoard.discoverCure(sender, c));
     }
 
     /**
@@ -496,23 +496,23 @@ public class EventTransferManager : Photon.MonoBehaviour {
 
     }
 
-    public void onTroubleShooterDirectFlight(City dest) {
+    public void onTroubleShooterDirectFlight(CityNode dest) {
 
     }
 
-    public void onDispatcherDrive(City dest, Player p){
+    public void onDispatcherDrive(CityNode dest, Player p){
 
     }
 
-    public void onDispatcherDirectFlight(City dest, Player p){
+    public void onDispatcherDirectFlight(CityNode dest, Player p){
 
     }
 
-    public void onDispatcherCharterFlight(City dest, Player p){
+    public void onDispatcherCharterFlight(CityNode dest, Player p){
 
     }
 
-    public void onDispatcherShuttleFlight(City dest, Player p){
+    public void onDispatcherShuttleFlight(CityNode dest, Player p){
 
     }
 
@@ -548,15 +548,15 @@ public class EventTransferManager : Photon.MonoBehaviour {
 
     }
 
-    public void onBioTerroristDrive(City dest) {
+    public void onBioTerroristDrive(CityNode dest) {
 
     }
 
-    public void onBioTerroristDirectFlight(City dest) {
+    public void onBioTerroristDirectFlight(CityNode dest) {
 
     }
 
-    public void onBioTerroristCharterFlight(City dest) {
+    public void onBioTerroristCharterFlight(CityNode dest) {
 
     }
 
@@ -564,7 +564,7 @@ public class EventTransferManager : Photon.MonoBehaviour {
 
     }
 
-    public void onBioTerroristEscape(City dest) {
+    public void onBioTerroristEscape(CityNode dest) {
 
     }
 
@@ -576,7 +576,7 @@ public class EventTransferManager : Photon.MonoBehaviour {
 
     }
 
-    public void onBioTerroristInfectRemotely(City dest) {
+    public void onBioTerroristInfectRemotely(CityNode dest) {
 
     }
 
@@ -596,8 +596,8 @@ public class EventTransferManager : Photon.MonoBehaviour {
     }
     [PunRPC]
     void drawPlayerCard(int sender){
-        PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
-        StartCoroutine(clientPandemicManager.drawPlayerCard(sender));
+        Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+        StartCoroutine(clientBoard.drawPlayerCard(sender));
     }
 
     public IEnumerator onBasicEpidemic() {
@@ -609,8 +609,8 @@ public class EventTransferManager : Photon.MonoBehaviour {
     }
     [PunRPC]
     void basicEpidemic() {
-        PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
-        StartCoroutine(clientPandemicManager.basicEpidemic());
+        Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+        StartCoroutine(clientBoard.basicEpidemic());
     }
 
     public IEnumerator onInfectNextCity() {
@@ -621,8 +621,8 @@ public class EventTransferManager : Photon.MonoBehaviour {
     }
     [PunRPC]
     void infectNextCity() {
-        PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
-        StartCoroutine(clientPandemicManager.infectNextCity());
+        Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+        StartCoroutine(clientBoard.infectNextCity());
     }
 
     public IEnumerator onOutbreak() {
@@ -688,7 +688,7 @@ public class EventTransferManager : Photon.MonoBehaviour {
 
     }
 
-    public void onGovernmentGrant(City c) {
+    public void onGovernmentGrant(CityNode c) {
 
     }
 
@@ -704,7 +704,7 @@ public class EventTransferManager : Photon.MonoBehaviour {
 
     }
 
-    public void onAirlift(City dest, Player target) {
+    public void onAirlift(CityNode dest, Player target) {
 
     }
 
@@ -712,7 +712,7 @@ public class EventTransferManager : Photon.MonoBehaviour {
 
     }
 
-    public void onRemoteTreatment(City c1, Colour co1, City c2, Colour co2) {
+    public void onRemoteTreatment(CityNode c1, Colour co1, CityNode c2, Colour co2) {
 
     }
 
@@ -745,17 +745,17 @@ public class EventTransferManager : Photon.MonoBehaviour {
     }
     [PunRPC]
     void highlightConnection(int senderPlayer, bool turnOn, Connection c) {
-        PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
-        StartCoroutine(clientPandemicManager.highlightConnection(senderPlayer, turnOn, c));
+        Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+        StartCoroutine(clientBoard.highlightConnection(senderPlayer, turnOn, c));
     }
 
-    public void onHighlightCity(int senderPlayer, bool turnOn, City c) {
+    public void onHighlightCity(int senderPlayer, bool turnOn, CityNode c) {
         GetComponent<PhotonView>().RPC("highlightCity", PhotonTargets.All, new object[] { senderPlayer, turnOn, c });
     }
     [PunRPC]
-    void highlightCity(int senderPlayer, bool turnOn, City c) {
-        PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
-        StartCoroutine(clientPandemicManager.highlightCity(senderPlayer, turnOn, c));
+    void highlightCity(int senderPlayer, bool turnOn, CityNode c) {
+        Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+        StartCoroutine(clientBoard.highlightCity(senderPlayer, turnOn, c));
     }
 
 }

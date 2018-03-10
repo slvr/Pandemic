@@ -11,8 +11,5 @@ public class Player : MonoBehaviour {
     public City playerLocation;
 }
 
-public enum Role {
-    one
-}
 
 

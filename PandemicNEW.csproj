@@ -368,7 +368,6 @@
     <Compile Include="Assets\PhotonChatApi\ChatUserStatus.cs" />
     <Compile Include="Assets\PhotonChatApi\IChatClientListener.cs" />
     <Compile Include="Assets\Scripts\chat.cs" />
-    <Compile Include="Assets\Scripts\City.cs" />
     <Compile Include="Assets\Scripts\CityCard.cs" />
     <Compile Include="Assets\Scripts\EventCard.cs" />
     <Compile Include="Assets\Scripts\GameBoard.cs" />
@@ -379,6 +378,15 @@
     <Compile Include="Assets\Scripts\Networking\Loader.cs" />
     <Compile Include="Assets\Scripts\Networking\Menu.cs" />
     <Compile Include="Assets\Scripts\Networking\NetworkManager.cs" />
+    <Compile Include="Assets\Scripts\Pandemic\Board.cs" />
+    <Compile Include="Assets\Scripts\Pandemic\CardHub.cs" />
+    <Compile Include="Assets\Scripts\Pandemic\City.cs" />
+    <Compile Include="Assets\Scripts\Pandemic\CityHub.cs" />
+    <Compile Include="Assets\Scripts\Pandemic\CityNode.cs" />
+    <Compile Include="Assets\Scripts\Pandemic\Connection.cs" />
+    <Compile Include="Assets\Scripts\Pandemic\DiseaseHub.cs" />
+    <Compile Include="Assets\Scripts\Pandemic\EnumsClass.cs" />
+    <Compile Include="Assets\Scripts\Pandemic\Pawn.cs" />
     <Compile Include="Assets\Scripts\Pandemic\UI\SaveFileSelect.cs" />
     <Compile Include="Assets\Scripts\Player.cs" />
     <Compile Include="Assets\Scripts\PlayerCardStack.cs" />
