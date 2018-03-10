@@ -737,8 +737,26 @@ public class EventTransferManager : Photon.MonoBehaviour {
     }
 
     /**
-     * METHODS FOR COMMUNICATION
+     * MISC METHODS
      * */
+
+    public void onHighlightConnection(int senderPlayer, bool turnOn, Connection c) {
+        GetComponent<PhotonView>().RPC("highlightConnection", PhotonTargets.All, new object[] { senderPlayer, turnOn, c });
+    }
+    [PunRPC]
+    void highlightConnection(int senderPlayer, bool turnOn, Connection c) {
+        PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
+        StartCoroutine(clientPandemicManager.highlightConnection(senderPlayer, turnOn, c));
+    }
+
+    public void onHighlightCity(int senderPlayer, bool turnOn, City c) {
+        GetComponent<PhotonView>().RPC("highlightCity", PhotonTargets.All, new object[] { senderPlayer, turnOn, c });
+    }
+    [PunRPC]
+    void highlightCity(int senderPlayer, bool turnOn, City c) {
+        PandemicManager clientPandemicManager = GameObject.FindGameObjectWithTag("PandemicManager").GetComponent<PandemicManager>();
+        StartCoroutine(clientPandemicManager.highlightCity(senderPlayer, turnOn, c));
+    }
 
 }
 

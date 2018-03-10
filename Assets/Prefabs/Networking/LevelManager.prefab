@@ -19,7 +19,6 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4830350618050170}
-  - component: {fileID: 114559321955691158}
   - component: {fileID: 114065853887903918}
   m_Layer: 0
   m_Name: LevelManager
@@ -55,26 +54,5 @@ MonoBehaviour:
   boardPrefab: {fileID: 0}
   settingsPrefab: {fileID: 0}
   pandemicPlayersPrefab: {fileID: 0}
-  players: []
-  currentConnections: 0
---- !u!114 &114559321955691158
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1890795088990120}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8fd8b054288b7874f9ea2de7dd8e4700, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  boardPrefab: {fileID: 1879314985053532, guid: d764735aded97174392d09225871579c,
-    type: 2}
-  settingsPrefab: {fileID: 1939425059695610, guid: 4f2436c0a9be9ba4ca582c15929107bc,
-    type: 2}
-  catanPlayerPrefab: {fileID: 1657981192359426, guid: 11e746fdbac6cee4986d0f4d86ccba70,
-    type: 2}
-  progressCardsStackPrefab: {fileID: 1036424229303862, guid: c02e2285cb0fc4dcfb6269672e96b07f,
-    type: 2}
   players: []
   currentConnections: 0

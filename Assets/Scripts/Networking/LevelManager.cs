@@ -42,6 +42,7 @@ public class LevelManager : Photon.MonoBehaviour {
         //GameObject boardGameObject;
         //GameObject settingsGameObject;
 
+        CreateBoard();
         addPlayers();
 
         //initiate player cards
