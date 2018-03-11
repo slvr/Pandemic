@@ -87,7 +87,7 @@ public class EventTransferManager : Photon.MonoBehaviour {
     [PunRPC]
     void GenerateBoardForClientFromSavedGame() {
         GameObject clientBoardGO = Instantiate(boardPrefab);
-        GameBoard clientBoard = clientBoardGO.GetComponent<GameBoard>();
+        Board clientBoard = clientBoardGO.GetComponent<Board>();
         Persistence.pe_board pe_board = GameManager.instance.pe_board;
         /* Deserialize board settings */
     }
@@ -95,14 +95,14 @@ public class EventTransferManager : Photon.MonoBehaviour {
     void GenerateInfectionCardsForClientFromSavedGame(){
         Destroy(GameObject.FindGameObjectWithTag("InfectionCardStackManager"));
         GameObject infectionCardsStackGO = Instantiate(infectionCardsManagerPrefab);
-        InfectionCardStackManager clientInfectionCards = infectionCardsStackGO.GetComponent<InfectionCardStackManager>();
+        CardHub clientInfectionCards = infectionCardsStackGO.GetComponent<CardHub>();
         Persistence.pe_infectionCardStack pe_infectionCardStack = GameManager.instance.pe_infectionCardStack;
     }
     [PunRPC]
     void GeneratePlayerCardsForClientFromSavedGame(){
         Destroy(GameObject.FindGameObjectWithTag("PlayerCardStackManager"));
         GameObject playerCardsStackGO = Instantiate(playerCardsManagerPrefab);
-        PlayerCardStackManager clientPlayerCards = playerCardsStackGO.GetComponent<PlayerCardStackManager>();
+        CardHub clientPlayerCards = playerCardsStackGO.GetComponent<CardHub>();
         Persistence.pe_playerCardStack pe_playerCardStack = GameManager.instance.pe_playerCardStack;
        // clientPlayerCards.loadCardState(/*  Load each player's cards  */);
     }
@@ -127,44 +127,41 @@ public class EventTransferManager : Photon.MonoBehaviour {
     [PunRPC]
     void GenerateBoardForClient(){
         GameObject clientBoardGO = Instantiate(boardPrefab);
-        GameBoard clientBoard = clientBoardGO.GetComponent<GameBoard>();
+        Board clientBoard = clientBoardGO.GetComponent<Board>();
 
-        clientBoard.GenerateCities(clientBoard.transform.GetChild(0));
-        clientBoard.GenerateConnections(clientBoard.transform.GetChild(1));
+        clientBoard.GenerateCities();
+        clientBoard.GenerateConnections();
     }
     [PunRPC]
     public IEnumerator GenerateInfectionCardsForClient(){
-        Destroy(GameObject.FindGameObjectWithTag("InfectionCardStackManager"));
         GameObject infectionCardsStackGO = Instantiate(infectionCardsManagerPrefab);
-        InfectionCardStackManager clientInfectionCards = infectionCardsStackGO.GetComponent<InfectionCardStackManager>();
+        CardHub clientInfectionCards = infectionCardsStackGO.GetComponent<CardHub>();
         if (PhotonNetwork.isMasterClient) {
             yield return new WaitForSeconds(5f);
-            clientInfectionCards.shuffleCards();
             GetComponent<PhotonView>().RPC("GenerateInfectionCardDeque", PhotonTargets.All, new object[] { });
         }
     }
     [PunRPC]
     void GenerateInfectionCardDeque(){
-        InfectionCardStackManager clientInfectionCards = GameObject.FindGameObjectsWithTag("InfectionCardStackManager").GetComponent<InfectionCardStackManager>();
-        clientInfectionCards.infectionCardDeque.Clear();
-        clientInfectionCards.generateDeque();
+        CardHub clientInfectionCards = GameObject.FindGameObjectWithTag("CardHub").GetComponent<CardHub>();
+        clientInfectionCards.aInfectionDeck.Clear();
+        clientInfectionCards.initializeInfectionDeck();
     }
     [PunRPC]
     public IEnumerator GeneratePlayerCardsForClient(){
         Destroy(GameObject.FindGameObjectWithTag("PlayerCardStackManager"));
         GameObject playerCardsStackGO = Instantiate(playerCardsManagerPrefab);
-        PlayerCardStackManager clientPlayerCards = playerCardsStackGO.GetComponent<PlayerCardStackManager>();
+        CardHub clientPlayerCards = playerCardsStackGO.GetComponent<CardHub>();
         if (PhotonNetwork.isMasterClient){
             yield return new WaitForSeconds(5f);
-            clientPlayerCards.shuffleCards();
             GetComponent<PhotonView>().RPC("GeneratePlayerCardQueue", PhotonTargets.All, new object[] { });
         }
     }
     [PunRPC]
     void GeneratePlayerCardQueue(){
-        PlayerCardStackManager clientPlayerCards = GameObject.FindGameObjectWithTag("PlayerCardStackManager").GetComponent<PlayerCardStackManager>();
-        clientPlayerCards.playerCardQueue.Clear();
-        clientPlayerCards.generateQueue();
+        CardHub clientPlayerCards = GameObject.FindGameObjectWithTag("CardHub").GetComponent<CardHub>();
+        clientPlayerCards.aPlayerDeck.Clear();
+        clientPlayerCards.initializePlayerDeck();
     }
 
     public void OnEndTurn() {
@@ -194,6 +191,16 @@ public class EventTransferManager : Photon.MonoBehaviour {
     void HandleOperationFailure() {
         EventTransferManager.instance.waitingForPlayer = false;
         EventTransferManager.instance.waitingForPlayers = false;
+    }
+
+    public void saveFile(string fileName){
+        GetComponent<PhotonView>().RPC("saveFileEvent", PhotonTargets.All, new object[] {
+            fileName
+        });
+    }
+    [PunRPC]
+    private void saveFileEvent(string fileName){
+        SaveJson.saveJson(fileName);
     }
 
     /**
@@ -240,7 +247,7 @@ public class EventTransferManager : Photon.MonoBehaviour {
     [PunRPC]
     void MoveSelfPawn(int sender, CityNode dest) {
         Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
-        StartCoroutine(clientBoard.movePawn(sender, dest));
+        StartCoroutine(clientBoard.drive(sender, dest));
     }
     [PunRPC]
     void discardFromPlayerHand(int sender, CityCard[] ccs) {
@@ -249,7 +256,7 @@ public class EventTransferManager : Photon.MonoBehaviour {
     }
 
     public IEnumerator onBuildResearchStation(int senderPlayer, CityCard cc) {
-        CityNode c = cc.getCity();
+        GameObject c = cc.getCityNode();
         GetComponent<PhotonView>().RPC("discardFromPlayerHand", PhotonTargets.All, new object[] { senderPlayer, cc });
         GetComponent<PhotonView>().RPC("BuildResearchStation", PhotonTargets.All, new object[] { c });
         currentActionsRemaining -= 1;
@@ -265,7 +272,7 @@ public class EventTransferManager : Photon.MonoBehaviour {
     }
 
     public IEnumerator onTreatDisease(int senderPlayer, Colour c) {
-        CityNode city = senderPlayer.getLocation();
+        CityNode city = LevelManager.instance.players[senderPlayer].getLocation();
         GetComponent<PhotonView>().RPC("treatDisease", PhotonTargets.All, new object[] { city, c });
         currentActionsRemaining -= 1;
         switch ((Colour)c) {
@@ -291,23 +298,23 @@ public class EventTransferManager : Photon.MonoBehaviour {
     }
     [PunRPC]
     void treatDisease(CityNode city, Colour c) {
-        Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+        GameEngine clientBoard = GameObject.FindGameObjectWithTag("GameEngine").GetComponent<GameEngine>();
         StartCoroutine(clientBoard.treatDisease(city, c));
     }
 
     public void onGiveKnowledgeOffer(CityCard cc, int senderNumber, int receiverNumber) {
-        Debug.Log(LevelManager.instance.players[senderNumber].playerName + " wants to give the " + cc.name + " card to " + LevelManager.instance.players[receiverNumber].playerName);
+        Debug.Log(LevelManager.instance.players[senderNumber].aPlayerName + " wants to give the " + cc.name + " card to " + LevelManager.instance.players[receiverNumber].aPlayerName);
         StartCoroutine(giveOffer(senderNumber, receiverNumber, cc));
     }
     public void onGiveKnowledgeResponse(bool active) {
         GetComponent<PhotonView>().RPC("GiveKnowledgePanelActivation", PhotonTargets.All, new object[] { active });
     }
     public void onGiveKnowledgeEnd(int to, bool result) {
-        Debug.Log("Sending notification to: " + LevelManager.instance.players[to].playerName);
+        Debug.Log("Sending notification to: " + LevelManager.instance.players[to].aPlayerName);
         GetComponent<PhotonView>().RPC("SignalGiveKnowledgeEnd", PhotonTargets.All, new object[] { to, result });
     }
     public IEnumerator giveOffer(int senderNumber, int receiverNumber, CityCard cc) {
-        Debug.Log("Sending offer to: " + LevelManager.instance.players[receiverNumber].playerName);
+        Debug.Log("Sending offer to: " + LevelManager.instance.players[receiverNumber].aPlayerName);
         GetComponent<PhotonView>().RPC("SignalGiveKnowledge", PhotonTargets.All, new object[] { senderNumber, receiverNumber, cc });
         int[] waitingForPlayer = new int[1];
         waitingForPlayer[0] = receiverNumber;
@@ -323,16 +330,16 @@ public class EventTransferManager : Photon.MonoBehaviour {
     }
     [PunRPC]
     void SignalGiveKnowledge(int senderNumber, int receiverNumber, CityCard cc) {
-        Debug.Log("Receiving the notification: " + LevelManager.instance.players[receiverNumber].playerName);
+        Debug.Log("Receiving the notification: " + LevelManager.instance.players[receiverNumber].aPlayerName);
         if (PhotonNetwork.player.ID - 1 == receiverNumber){
-            Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+            GameEngine clientBoard = GameObject.FindGameObjectWithTag("GameEngine").GetComponent<GameEngine>();
             clientBoard.uiManager.giveKnowledgePlayerPanel.waiting.gameObject.SetActive(false);
             clientBoard.uiManager.giveKnowledgePlayerPanel.OpenRespond(clientBoard.players[senderNumber], cc);
         }
     }
     [PunRPC]
     void GiveKnowledgePanelActivation(bool active) {
-        Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+        GameEngine clientBoard = GameObject.FindGameObjectWithTag("GameEngine").GetComponent<GameEngine>();
         GiveKnowledgePlayerPanel panel = clientBoard.uiManager.giveKnowledgePlayerPanel;
 
         panel.accept.onClick.RemoveAllListeners();
@@ -343,33 +350,33 @@ public class EventTransferManager : Photon.MonoBehaviour {
     [PunRPC]
     void SignalGiveKnowledgeEnd(int to, bool result) {
         if (PhotonNetwork.player.ID - 1 == to){
-            Debug.Log("Give knowledge: " + LevelManager.instance.players[to].playerName + " notified");
-            Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+            Debug.Log("Give knowledge: " + LevelManager.instance.players[to].aPlayerName + " notified");
+            GameEngine clientBoard = GameObject.FindGameObjectWithTag("GameEngine").GetComponent<GameEngine>();
             clientBoard.uiManager.giveKnowledgePlayerPanel.notification.gameObject.SetActive(true);
             if (result){
-                clientBoard.uiManage.giveKnowledgePlayerPanel.notificationText.text = "Accepted";
+                clientBoard.uiManager.giveKnowledgePlayerPanel.notificationText.text = "Accepted";
                 currentActionsRemaining -= 1;
             }
             else{
-                clientBoard.uiManage.giveKnowledgePlayerPanel.notificationText.text = "Rejected";
+                clientBoard.uiManager.giveKnowledgePlayerPanel.notificationText.text = "Rejected";
             }
         }
         GetComponent<PhotonView>().RPC("GiveKnowledgePanelActivation", PhotonTargets.All, new object[] { false });
     }
 
     public void onReceiveKnowledgeOffer(CityCard cc, int senderNumber, int receiverNumber) {
-        Debug.Log(LevelManager.instance.players[receiverNumber].playerName + " want to receive the " + cc.name + " card from " + LevelManager.instance.players[senderNumber].playerName);
+        Debug.Log(LevelManager.instance.players[receiverNumber].aPlayerName + " want to receive the " + cc.name + " card from " + LevelManager.instance.players[senderNumber].aPlayerName);
         StartCoroutine(receiveOffer(senderNumber, receiverNumber, cc));
     }
     public void onReceiveKnowledgeResponse(bool active) {
         GetComponent<PhotonView>().RPC("ReceiveKnowledgePanelActivation", PhotonTargets.All, new object[] { active });
     }
     public void onReceiveKnowledgeEnd(int to, bool result) {
-        Debug.Log("Sending notification to: " + LevelManager.instance.players[to].playerName);
+        Debug.Log("Sending notification to: " + LevelManager.instance.players[to].aPlayerName);
         GetComponent<PhotonView>().RPC("SignalReceiveKnowledgeEnd", PhotonTargets.All, new object[] { to, result });
     }
     public IEnumerator receiveOffer(int senderNumber, int receiverNumber, CityCard cc) {
-        Debug.Log("Sending offer to: " + LevelManager.instance.players[receiverNumber].playerName);
+        Debug.Log("Sending offer to: " + LevelManager.instance.players[receiverNumber].aPlayerName);
         GetComponent<PhotonView>().RPC("SignalReceiveKnowledge", PhotonTargets.All, new object[] { senderNumber, receiverNumber, cc });
         int[] waitingForPlayer = new int[1];
         waitingForPlayer[0] = receiverNumber;
@@ -385,16 +392,16 @@ public class EventTransferManager : Photon.MonoBehaviour {
     }
     [PunRPC]
     void SignalReceiveKnowledge(int senderNumber, int receiverNumber, CityCard cc){
-        Debug.Log("Receiving the notification: " + LevelManager.instance.players[receiverNumber].playerName);
+        Debug.Log("Receiving the notification: " + LevelManager.instance.players[receiverNumber].aPlayerName);
         if (PhotonNetwork.player.ID - 1 == receiverNumber) {
-            Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+            GameEngine clientBoard = GameObject.FindGameObjectWithTag("GameEngine").GetComponent<GameEngine>();
             clientBoard.uiManager.receiveKnowledgePlayerPanel.waiting.gameObject.SetActive(false);
             clientBoard.uiManager.receiveKnowledgePlayerPanel.OpenRespond(clientBoard.players[senderNumber], cc);
         }
     }
     [PunRPC]
     void ReceiveKnowledgePanelActivation(bool active) {
-        Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
+        GameEngine clientBoard = GameObject.FindGameObjectWithTag("GameEngine").GetComponent<GameEngine>();
         ReceiveKnowledgePlayerPanel panel = clientBoard.uiManager.receiveKnowledgePlayerPanel;
 
         panel.accept.onClick.RemoveAllListeners();
@@ -405,15 +412,15 @@ public class EventTransferManager : Photon.MonoBehaviour {
     [PunRPC]
     void SignalReceiveKnowledgeEnd(int to, bool result) {
         if (PhotonNetwork.player.ID - 1 == to) {
-            Debug.Log("Receive knowledge: " + LevelManager.instance.players[to].playerName + " notified");
+            Debug.Log("Receive knowledge: " + LevelManager.instance.players[to].aPlayerName + " notified");
             Board clientBoard = GameObject.FindGameObjectWithTag("Board").GetComponent<Board>();
             clientBoard.uiManager.receiveKnowledgePlayerPanel.notification.gameObject.SetActive(true);
             if (result){
-                clientBoard.uiManage.receiveKnowledgePlayerPanel.notificationText.text = "Accepted";
+                clientBoard.uiManager.receiveKnowledgePlayerPanel.notificationText.text = "Accepted";
                 currentActionsRemaining -= 1;
             }
             else {
-                clientBoard.uiManage.receiveKnowledgePlayerPanel.notificationText.text = "Rejected";
+                clientBoard.uiManager.receiveKnowledgePlayerPanel.notificationText.text = "Rejected";
             }
         }
         GetComponent<PhotonView>().RPC("ReceiveKnowledgePanelActivation", PhotonTargets.All, new object[] { false });

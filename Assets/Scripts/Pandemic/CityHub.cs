@@ -1,110 +1,54 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class CityHub {
-
-    public int aNumberResearchStations;
-    public List<CityNode> aCityNodes;
-    public List<City> aCities;
-
-    public CityHub()
-    {
-        aNumberResearchStations = 0;
-        aCities = new List<City>();
-        aCityNodes = new List<CityNode>();
-
-     //   GameObject cityNodes = GameObject.Find("CityNodes");
-     //   Debug.Log(cityNodes != null);
-    }
-    public void Start()
-    {
-
-    }
+public class CityHub : MonoBehaviour {
 
 
-    public int GetNumberResearchStations()
-    {
-        return aNumberResearchStations;
-    }
+	public List<GameObject> CityNodeList;
+	public int aNumberResearchStations;
 
-    public void AddCityNode(CityNode pCity)
-    {
-        aCityNodes.Add(pCity);
-    }
+	// Use this for initialization
+	void Start () {
 
-    public void AddDiseaseCubes(Colour pColor, CityNode pCity, int num)
-    {
-        if (aCityNodes.Contains(pCity))
-        {
-            aCityNodes[aCityNodes.IndexOf(pCity)].AddDisease(pColor, num);
-        }
-        else
-        {
-            Debug.Log("List does not contain " + pCity.GetCity().GetName());
-        }
-    }
-    
-    public void RemoveDiseaseCubes(Colour pColor, CityNode pCity, int num)
-    {
-        if (aCityNodes.Contains(pCity))
-        {
-            aCityNodes[aCityNodes.IndexOf(pCity)].RemoveDisease(pColor, num);
-        }
-        else
-        {
-            Debug.Log("List does not contain " + pCity.GetCity().GetName());
-        }
-    }
+		CityNodeList.AddRange (GameObject.FindGameObjectsWithTag("CityNode"));
 
-    public void MovePawn(CityNode arrivingCity, Pawn pPawn)
-    {
-        CityNode departingCity = GetCity(pPawn);
-        departingCity.RemovePawn(pPawn);
-        arrivingCity.AddPawn(pPawn);
-    }
-
-    public CityNode GetCity(City pCity)
-    {
-        foreach(CityNode c in aCityNodes)
-        {
-            if (c.GetCity() == pCity)
-            {
-                return c;
-            }
-        }
-        Debug.Log("City not in any Cities. Null returned");
-        return null;
-    }
-
-    public CityNode GetCity(Pawn pPawn)
-    {
-        foreach(CityNode aCity in aCityNodes)
-        {
-            if (aCity.HasPawns())
-            {
-                foreach(Pawn p in aCity.GetPawns())
-                {
-                    if (p.Equals(pPawn))
-                    {
-                        return aCity;
-                    }
-                }
-            }
-        }
-        Debug.Log("Pawn not in any Cities. Null returned");
-        return null;
-    }
-    
-
-    // TODO Depends on the implementation
-    public void InitializeCities()
-    {
-
-      //  City test = ScriptableObject.CreateInstance<City>("TestCity", 0, 0); // City("test", 0, 0);
-        
-       // Debug.Log(test.GetName());
-    }
+		
+	}
+	
+	GameObject getCity(string pCity){
+		
+		GameObject bCity =  CityNodeList.Find (x => Equals(x.GetComponent<CityNode>().aCity.GetComponent<City>().getName(), pCity));
+		return bCity;
+	}
+	GameObject getCity(GameObject pPawn){
+		
+		GameObject bCity = CityNodeList.Find (x => x.GetComponent<CityNode>().aPawns.Contains(pPawn));
+		return bCity;
+	}
 
 
+	public void movePawn(GameObject pPawn, GameObject pCity){
+		getCity(pPawn).GetComponent<CityNode>().aPawns.Remove(pPawn);
+		pPawn.GetComponent<Transform> ().position = pCity.GetComponent<Transform>().position;
+		getCity (pCity.GetComponent<City>().getName()).GetComponent<CityNode> ().aPawns.Add (pPawn);
+	}
+
+	public void dummyMove(){
+		 GameObject p1 = GameObject.FindGameObjectWithTag("Player");
+		GameObject d1 = getCity("Paris");
+
+		movePawn (p1, d1);
+	}
+
+	public void dummyInitialize(){
+		CityCard.initialize (CityNodeList);
+		InfectionCard.initialize (CityNodeList);
+		EpidemicCard.initialize (3);
+	}
+
+	public void dummyGet(){
+		CityCard.get (CityNodeList [4]);
+	}
+		
 }

@@ -4,6 +4,6 @@ using UnityEngine;
 public class GameStatus {
 
     public Player player;
-    public GameBoard board;
+    public Board board;
 
 }

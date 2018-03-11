@@ -15,7 +15,7 @@ public class LevelManager : Photon.MonoBehaviour {
 
     public List<Player> players;
 
-    private GameBoard board;
+    private Board board;
 
     public int currentConnections = 0;
 

@@ -297,7 +297,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\NewBehaviourScript.cs" />
     <Compile Include="Assets\Photon Unity Networking\Plugins\PhotonNetwork\CustomTypes.cs" />
     <Compile Include="Assets\Photon Unity Networking\Plugins\PhotonNetwork\Enums.cs" />
     <Compile Include="Assets\Photon Unity Networking\Plugins\PhotonNetwork\Extensions.cs" />
@@ -367,29 +366,34 @@
     <Compile Include="Assets\PhotonChatApi\ChatState.cs" />
     <Compile Include="Assets\PhotonChatApi\ChatUserStatus.cs" />
     <Compile Include="Assets\PhotonChatApi\IChatClientListener.cs" />
-    <Compile Include="Assets\Scripts\chat.cs" />
-    <Compile Include="Assets\Scripts\CityCard.cs" />
-    <Compile Include="Assets\Scripts\EventCard.cs" />
-    <Compile Include="Assets\Scripts\GameBoard.cs" />
     <Compile Include="Assets\Scripts\GameManager.cs" />
-    <Compile Include="Assets\Scripts\InfectionCard.cs" />
+    <Compile Include="Assets\Scripts\Networking\chat.cs" />
     <Compile Include="Assets\Scripts\Networking\EventTransferManager.cs" />
     <Compile Include="Assets\Scripts\Networking\LevelManager.cs" />
     <Compile Include="Assets\Scripts\Networking\Loader.cs" />
     <Compile Include="Assets\Scripts\Networking\Menu.cs" />
     <Compile Include="Assets\Scripts\Networking\NetworkManager.cs" />
+    <Compile Include="Assets\Scripts\Pandemic\aPawn.cs" />
     <Compile Include="Assets\Scripts\Pandemic\Board.cs" />
     <Compile Include="Assets\Scripts\Pandemic\CardHub.cs" />
     <Compile Include="Assets\Scripts\Pandemic\City.cs" />
+    <Compile Include="Assets\Scripts\Pandemic\CityCard.cs" />
+    <Compile Include="Assets\Scripts\Pandemic\CityHandler.cs" />
     <Compile Include="Assets\Scripts\Pandemic\CityHub.cs" />
     <Compile Include="Assets\Scripts\Pandemic\CityNode.cs" />
     <Compile Include="Assets\Scripts\Pandemic\Connection.cs" />
     <Compile Include="Assets\Scripts\Pandemic\DiseaseHub.cs" />
     <Compile Include="Assets\Scripts\Pandemic\EnumsClass.cs" />
+    <Compile Include="Assets\Scripts\Pandemic\EpidemicCard.cs" />
+    <Compile Include="Assets\Scripts\Pandemic\EventCard.cs" />
+    <Compile Include="Assets\Scripts\Pandemic\GameEngine.cs" />
+    <Compile Include="Assets\Scripts\Pandemic\InfectionCard.cs" />
+    <Compile Include="Assets\Scripts\Pandemic\PandemicSystem.cs" />
     <Compile Include="Assets\Scripts\Pandemic\Pawn.cs" />
+    <Compile Include="Assets\Scripts\Pandemic\Player.cs" />
+    <Compile Include="Assets\Scripts\Pandemic\PlayerCard.cs" />
     <Compile Include="Assets\Scripts\Pandemic\UI\SaveFileSelect.cs" />
-    <Compile Include="Assets\Scripts\Player.cs" />
-    <Compile Include="Assets\Scripts\PlayerCardStack.cs" />
+    <Compile Include="Assets\Scripts\Pandemic\UI\uiManager.cs" />
     <Compile Include="Assets\Scripts\SaveLoad\Entity.cs" />
     <Compile Include="Assets\Scripts\SaveLoad\GameStatus.cs" />
     <Compile Include="Assets\Scripts\SaveLoad\LoadJson.cs" />
